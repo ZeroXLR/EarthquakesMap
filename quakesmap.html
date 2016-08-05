@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+	<meta name="viewport" content="initial-scale=1.0, user-scalable=no">
+	<meta charset="utf-8">
+	<title>Recent Earthquake Markers</title>
+	<style>
+		html,
+		body {
+			height: 100%;
+			margin: 0;
+			padding: 0;
+		}
+
+		#map {
+			height: 100%;
+		}
+	</style>
+	<link rel="icon" type="image/ico" href="images/quakecon.ico"/>
+</head>
+
+<body>
+	<div id="map"></div>
+	<script type="text/javascript">
+		'use strict';
+
+		function gm_authFailure(error) {
+				alert('DEATH BY AUTHENTICATION FAILURE\n\nLook at the browser console for details');
+		};
+
+		/* It is tempting to call 'navigator.geolocation.getCurrentPosition(...)' now.
+		 * But, that is asynchronous. It won't wait for 'location' to get updated! */
+		function initMap() {
+			var location = {
+				lat: 51.4778,
+				lng: -0.0014
+			}; // default location
+			var map = new google.maps.Map(document.getElementById("map"), {
+				zoom: 3,
+				center: location
+			});
+			var mainmarker = new google.maps.Marker({
+				position: location,
+				map: map,
+				icon: 'images/catcon.ico',
+				title: 'Royal Observatory at Greenwich',
+				animation: google.maps.Animation.DROP
+			});
+
+			(function(wantToUseOwnLocation) {
+				if (wantToUseOwnLocation) {
+					if (navigator.geolocation) {
+						navigator.geolocation.getCurrentPosition(
+							function(position) { // console.log(position.coords);
+								location.lat = position.coords.latitude;
+								location.lng = position.coords.longitude;
+								map.setCenter(location);
+								mainmarker.setPosition(location);
+								mainmarker.setAnimation(google.maps.Animation.DROP);
+								mainmarker.setTitle('You!');
+								// putRecentEarthquakes();
+							},
+							function(error) {
+								console.error('ERROR(' + error.code + '): ' + error.message);
+								alert(error.message + '\n\nDefaulting to the Royal Observatory at Greenwich.');
+								// putRecentEarthquakes();
+							},
+							{
+								enableHighAccuracy: true,
+								timeout: 120000,
+								maximumAge: 0
+							}
+						);
+					} else {
+						console.warn("Your browser doesn't support geolocation. No worries; defaulting to the Royal Observatory at Greenwich.");
+						// putRecentEarthquakes();
+					}
+				}
+			})(confirm("Do you want to use your own location?"));
+
+			(function() {
+				var url = 'http://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/all_day.geojson';
+				var xhr = new XMLHttpRequest();
+				xhr.onreadystatechange = function() {
+					if (xhr.readyState === 4 && xhr.status === 200) {
+						var recentquakes = JSON.parse(xhr.responseText);
+						recentquakes.features.forEach(function(element) {
+							var marker = new google.maps.Marker({
+								position: {lat:element.geometry.coordinates[1], lng:element.geometry.coordinates[0]},
+								map: map,
+								icon: 'images/quakecon.ico',
+								title: element.properties.title
+							});
+						});
+					}
+					console.log('Earthquake Data Request is at state ' + xhr.readyState + ' and the current HTTP status is ' + xhr.status);
+				};
+				xhr.open('GET', url, true);
+				xhr.send();
+			})();
+		}
+
+		(function(key) {
+			if (key) {
+				var script = document.createElement("script");
+				script.type = 'text/javascript';
+				script.src = "https://maps.googleapis.com/maps/api/js?key=" + key + "&callback=initMap";
+				// "https://maps.googleapis.com/maps/api/js?callback=initMap";
+				document.body.appendChild(script);
+			} else {
+				alert("No browser key provided. DIE.");
+				throw new Error("Use of Google Maps API without key is deprecated");
+			}
+		})(prompt("Type in your Google Maps API key please!"));
+	</script>
+</body>
+
+</html>
