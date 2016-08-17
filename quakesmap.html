@@ -24,37 +24,35 @@
 	<div id="map"></div>
 	<script type="text/javascript">
 		'use strict';
-		var globalfunctions = (function main(global) {
-			var doc = global.document;
+		var GLOBALFUNCTIONS = (function MapEngine(global) {
+			var document = global.document;
 			var storage = global.sessionStorage;
 			var console = global.console;
-			// var markers = [];
 
+			var gm_authFailure = (function KeyManager() {
+				var mapsURLWithKey = storage.getItem('MapsURLWithGoogleMapsBrowserKey');
 
-			var gm_authFailure = (function keymanager() {
-				var mapsurlwithkey = storage.getItem('MapsURLWithGoogleMapsBrowserKey');
-
-				// call this block of code asynchronously to make sure that it executes AFTER main() function returns
+				// call this block of code asynchronously to make sure that it executes AFTER MapEngine() function returns
 				global.setTimeout(function() {
 					var key;
-					if (mapsurlwithkey) {
-						makescript();
+					if (mapsURLWithKey) {
+						makeScript();
 					} else if ((key = global.prompt("Type in your Google Maps API key please!"))) {
-						mapsurlwithkey = "https://maps.googleapis.com/maps/api/js?key=" + key + "&callback=initMap";
-						makescript();
-						storage.setItem('MapsURLWithGoogleMapsBrowserKey', mapsurlwithkey);
+						mapsURLWithKey = "https://maps.googleapis.com/maps/api/js?key=" + key + "&callback=initializeMap";
+						makeScript();
+						storage.setItem('MapsURLWithGoogleMapsBrowserKey', mapsURLWithKey);
 					} else {
 						alert("No browser key provided. DIE.");
 						throw new Error("Use of Google Maps API without key is deprecated");
 					}
 				}, 0);
 
-				function makescript() {
-					var script = doc.createElement("script");
+				function makeScript() {
+					var script = document.createElement("script");
 					script.type = 'text/javascript';
-					script.src = mapsurlwithkey;
-					// "https://maps.googleapis.com/maps/api/js?callback=initMap";
-					doc.body.appendChild(script);
+					script.src = mapsURLWithKey;
+					// "https://maps.googleapis.com/maps/api/js?callback=initializeMap";
+					document.body.appendChild(script);
 				}
 
 				function gm_authFailure() {
@@ -73,34 +71,34 @@
 			// 	}
 			// 	markers = [];
 			// }
-			var initMap = (function mapmanipulators() {
-				var maps; // won't be defined until initMap() is called
-				var locationobject = JSON.parse(storage.getItem('MainPreferredLocation')) || {
-					hasbeenstored: false,
+			var initializeMap = (function MapManipulators() {
+				var maps; // won't be defined until initializeMap() is called
+				var locationObject = JSON.parse(storage.getItem('MainPreferredLocation')) || {
+					hasBeenStored: false,
 					location: {
 						lat: 51.4778,
 						lng: -0.0014
 					}
 				};
 				var map;
-				var mainmarker;
+				var mainMarker;
 
-				function initMap() {
+				function initializeMap() {
 					maps = google.maps; // google.maps is now defined
 					// we unfortunately need a new map everytime; you cannot rebind an existing map to the new div element that would be created upon reload
-					createnewmap();
-					locationobject.hasbeenstored || setownlocation();
-					fetchquakesdata();
+					createNewMap();
+					locationObject.hasBeenStored || setOwnLocation();
+					fetchQuakesData();
 				}
 
 				// map initialization factory
-				function createnewmap() {
-					map = new maps.Map(doc.getElementById("map"), {
+				function createNewMap() {
+					map = new maps.Map(document.getElementById("map"), {
 						zoom: 3,
-						center: locationobject.location
+						center: locationObject.location
 					});
-					mainmarker = new maps.Marker({
-						position: locationobject.location,
+					mainMarker = new maps.Marker({
+						position: locationObject.location,
 						map: map,
 						icon: 'images/catcon.ico',
 						title: 'Royal Observatory at Greenwich',
@@ -109,7 +107,7 @@
 				}
 
 				var geolocation = global.navigator.geolocation;
-				function setownlocation() {
+				function setOwnLocation() {
 					if (geolocation && global.confirm('Do you want to set your location?')) {
 						geolocation.getCurrentPosition(
 							function(position) {
@@ -119,19 +117,19 @@
 									lng: coords.longitude
 								};
 								map.setCenter(location);
-								mainmarker.setPosition(location);
-								mainmarker.setAnimation(maps.Animation.DROP);
-								mainmarker.setTitle('You!');
+								mainMarker.setPosition(location);
+								mainMarker.setAnimation(maps.Animation.DROP);
+								mainMarker.setTitle('You!');
 								storage.setItem('MainPreferredLocation', JSON.stringify({
-									hasbeenstored: true,
+									hasBeenStored: true,
 									location: location
 								}));
 							},
 							function(error) {
 								console.error('ERROR(' + error.code + '): ' + error.message);
 								alert(error.message + '\n\nDEFAULTING TO THE ROYAL OBSERVATORY AT GREENWICH');
-								locationobject.hasbeenstored = true;
-								storage.setItem('MainPreferredLocation', JSON.stringify(locationobject));
+								locationObject.hasBeenStored = true;
+								storage.setItem('MainPreferredLocation', JSON.stringify(locationObject));
 							},
 							{
 								enableHighAccuracy: true,
@@ -141,23 +139,23 @@
 						);
 					} else {
 						console.warn("Your browser doesn't support geolocation. No worries; defaulting to the Royal Observatory at Greenwich.");
-						locationobject.hasbeenstored = true;
-						storage.setItem('MainPreferredLocation', JSON.stringify(locationobject));
+						locationObject.hasBeenStored = true;
+						storage.setItem('MainPreferredLocation', JSON.stringify(locationObject));
 					}
 				}
 
-				var quakesurl = 'http://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/all_day.geojson';
-				function fetchquakesdata() {
+				var quakesURL = 'http://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/all_day.geojson'; // var markers = [];
+				function fetchQuakesData() {
 					var xhr = new XMLHttpRequest();
 					xhr.onreadystatechange = function() {
 						if (xhr.readyState === 4 && xhr.status === 200) {
 							// if (markers.length) {
 							// 	deletemarkers();
 							// }
-							var recentquakes = JSON.parse(xhr.responseText).features;
-							var quake, numberofquakes = recentquakes.length; // var marker;
-							for (var i = 0; i < numberofquakes; ++i) {
-								quake = recentquakes[i]; // marker =
+							var recentQuakes = JSON.parse(xhr.responseText).features;
+							var quake, numberOfQuakes = recentQuakes.length; // var marker;
+							for (var i = 0; i < numberOfQuakes; ++i) {
+								quake = recentQuakes[i]; // marker =
 								new maps.Marker({
 									position: {
 										lat: quake.geometry.coordinates[1],
@@ -171,21 +169,21 @@
 						}
 						console.log('Earthquake Data Request is at state ' + xhr.readyState + ' and the current HTTP status is ' + xhr.status);
 					};
-					xhr.open('GET', quakesurl, true);
+					xhr.open('GET', quakesURL, true);
 					xhr.send();
 				}
 
-				return initMap;
+				return initializeMap;
 			})();
 
 			return {
-				initMap: initMap,
+				initializeMap: initializeMap,
 				gm_authFailure: gm_authFailure
 			};
 		})(this);
 
-		var initMap = globalfunctions.initMap;
-		var gm_authFailure = globalfunctions.gm_authFailure;
+		var initializeMap = GLOBALFUNCTIONS.initializeMap;
+		var gm_authFailure = GLOBALFUNCTIONS.gm_authFailure;
 	</script>
 </body>
 
