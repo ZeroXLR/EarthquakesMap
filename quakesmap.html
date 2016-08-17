@@ -154,19 +154,20 @@
 							// if (markers.length) {
 							// 	deletemarkers();
 							// }
-							var recentquakes = JSON.parse(xhr.responseText);
-							recentquakes.features.forEach(function(element) {
-								var marker = new maps.Marker({
+							var recentquakes = JSON.parse(xhr.responseText).features;
+							var quake, numberofquakes = recentquakes.length; // var marker;
+							for (var i = 0; i < numberofquakes; ++i) {
+								quake = recentquakes[i]; // marker =
+								new maps.Marker({
 									position: {
-										lat:element.geometry.coordinates[1],
-										lng:element.geometry.coordinates[0]
+										lat: quake.geometry.coordinates[1],
+										lng: quake.geometry.coordinates[0]
 									},
 									map: map,
 									icon: 'images/quakecon.ico',
-									title: element.properties.title
-								});
-								// markers.push(marker);
-							});
+									title: quake.properties.title
+								}); // markers.push(marker);
+							}
 						}
 						console.log('Earthquake Data Request is at state ' + xhr.readyState + ' and the current HTTP status is ' + xhr.status);
 					};
