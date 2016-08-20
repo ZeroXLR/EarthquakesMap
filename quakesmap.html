@@ -13,6 +13,17 @@
 			padding: 0;
 		}
 
+		#controllers {
+			position: absolute;
+			top: 10%;
+			left: 5px;
+			list-style: none;
+		}
+
+		#controllers button {
+			display: none;
+		}
+
 		#map {
 			height: 100%;
 		}
@@ -22,24 +33,44 @@
 
 <body>
 	<div id="map"></div>
+	<ul id="controllers">
+		<li>
+			<button id="getownlocation" type="button">Locate Yourself</button>
+		</li>
+		<li>
+			<button id="refreshquakes" type="button">Refresh Recent Quakes</button>
+		</li>
+		<li>
+			<button id="clearkey" type="button">Clear Stored Browser Key</button>
+		</li>
+	</ul>
 	<script type="text/javascript">
 		'use strict';
 		var GLOBALFUNCTIONS = (function MapEngine(global) {
 			var document = global.document;
-			var storage = global.sessionStorage;
 			var console = global.console;
+			var controllers = document.getElementById('controllers');
+
+			function setUpButton(button, clickCallBack) {
+				button.style.display = 'initial';
+				button.addEventListener('click', clickCallBack);
+			}
 
 			var gm_authFailure = (function KeyManager() {
+				var storage = global.localStorage;
+				var clearButton = controllers.querySelector('#clearkey');
 				var mapsURLWithKey = storage.getItem('MapsURLWithGoogleMapsBrowserKey');
 
-				// call this block of code asynchronously to make sure that it executes AFTER MapEngine() function returns
+				// call this block of code asynchronously to make sure that it executes AFTER MapEngine() function returns the initializeMap() function (which will be called by the script created in this block)
 				global.setTimeout(function() {
 					var key;
 					if (mapsURLWithKey) {
 						makeScript();
+						setUpButton(clearButton, removeStoredBrowserKey);
 					} else if ((key = global.prompt("Type in your Google Maps API key please!"))) {
 						mapsURLWithKey = "https://maps.googleapis.com/maps/api/js?key=" + key + "&callback=initializeMap";
 						makeScript();
+						setUpButton(clearButton, removeStoredBrowserKey);
 						storage.setItem('MapsURLWithGoogleMapsBrowserKey', mapsURLWithKey);
 					} else {
 						alert("No browser key provided. DIE.");
@@ -51,12 +82,16 @@
 					var script = document.createElement("script");
 					script.type = 'text/javascript';
 					script.src = mapsURLWithKey;
-					// "https://maps.googleapis.com/maps/api/js?callback=initializeMap";
 					document.body.appendChild(script);
 				}
 
-				function gm_authFailure() {
+				function removeStoredBrowserKey() {
 					storage.removeItem('MapsURLWithGoogleMapsBrowserKey');
+					clearButton.style.display = 'none';
+				}
+
+				function gm_authFailure() {
+					removeStoredBrowserKey();
 					// storage.removeItem('MainPreferredLocation');
 					global.alert('DEATH BY AUTHENTICATION FAILURE\n\nLook at the browser console for details\n\nTRY REFRESHING AND ENTER A VALID KEY');
 				};
@@ -64,21 +99,14 @@
 				return gm_authFailure;
 			})();
 
-			// function deletemarkers() {
-			// 	var i, len = markers.length;
-			// 	for (i = 0; i < len; ++i) {
-			// 		markers[i].setMap(null);
-			// 	}
-			// 	markers = [];
-			// }
-			var initializeMap = (function MapManipulators() {
+			var initializeMap = (function MapManager() {
+				var selfLocatorButton = controllers.querySelector('#getownlocation');
+				var quakesRefresherButton = controllers.querySelector('#refreshquakes');
+				var storage = global.sessionStorage;
 				var maps; // won't be defined until initializeMap() is called
-				var locationObject = JSON.parse(storage.getItem('MainPreferredLocation')) || {
-					hasBeenStored: false,
-					location: {
-						lat: 51.4778,
-						lng: -0.0014
-					}
+				var location = JSON.parse(storage.getItem('MainPreferredLocation')) || {
+					lat: 51.4778,
+					lng: -0.0014
 				};
 				var map;
 				var mainMarker;
@@ -87,18 +115,19 @@
 					maps = google.maps; // google.maps is now defined
 					// we unfortunately need a new map everytime; you cannot rebind an existing map to the new div element that would be created upon reload
 					createNewMap();
-					locationObject.hasBeenStored || setOwnLocation();
+					setUpButton(selfLocatorButton, setOwnLocation);
 					fetchQuakesData();
+					setUpButton(quakesRefresherButton, fetchQuakesData);
 				}
 
 				// map initialization factory
 				function createNewMap() {
 					map = new maps.Map(document.getElementById("map"), {
 						zoom: 3,
-						center: locationObject.location
+						center: location
 					});
 					mainMarker = new maps.Marker({
-						position: locationObject.location,
+						position: location,
 						map: map,
 						icon: 'images/catcon.ico',
 						title: 'Royal Observatory at Greenwich',
@@ -108,28 +137,22 @@
 
 				var geolocation = global.navigator.geolocation;
 				function setOwnLocation() {
-					if (geolocation && global.confirm('Do you want to set your location?')) {
+					// if (locationObject.hasBeenStored) return;
+					if (geolocation) {
 						geolocation.getCurrentPosition(
 							function(position) {
 								var coords = position.coords;
-								var location = {
-									lat: coords.latitude,
-									lng: coords.longitude
-								};
+								location.lat = coords.latitude;
+								location.lng = coords.longitude;
 								map.setCenter(location);
 								mainMarker.setPosition(location);
 								mainMarker.setAnimation(maps.Animation.DROP);
 								mainMarker.setTitle('You!');
-								storage.setItem('MainPreferredLocation', JSON.stringify({
-									hasBeenStored: true,
-									location: location
-								}));
+								storage.setItem('MainPreferredLocation', JSON.stringify(location));
 							},
 							function(error) {
 								console.error('ERROR(' + error.code + '): ' + error.message);
 								alert(error.message + '\n\nDEFAULTING TO THE ROYAL OBSERVATORY AT GREENWICH');
-								locationObject.hasBeenStored = true;
-								storage.setItem('MainPreferredLocation', JSON.stringify(locationObject));
 							},
 							{
 								enableHighAccuracy: true,
@@ -139,24 +162,32 @@
 						);
 					} else {
 						console.warn("Your browser doesn't support geolocation. No worries; defaulting to the Royal Observatory at Greenwich.");
-						locationObject.hasBeenStored = true;
-						storage.setItem('MainPreferredLocation', JSON.stringify(locationObject));
 					}
 				}
 
-				var quakesURL = 'http://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/all_day.geojson'; // var markers = [];
+				var quakesURL = 'http://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/all_day.geojson';
+				var quakesMarkers = [];
+
+				function deleteQuakesMarkers() {
+					var i, numberOfMarkers = quakesMarkers.length;
+					for (i = 0; i < numberOfMarkers; ++i) {
+						quakesMarkers[i].setMap(null);
+					}
+					quakesMarkers = [];
+				}
+
 				function fetchQuakesData() {
 					var xhr = new XMLHttpRequest();
 					xhr.onreadystatechange = function() {
 						if (xhr.readyState === 4 && xhr.status === 200) {
-							// if (markers.length) {
-							// 	deletemarkers();
-							// }
+							if (quakesMarkers.length) {
+								deleteQuakesMarkers();
+							}
 							var recentQuakes = JSON.parse(xhr.responseText).features;
-							var quake, numberOfQuakes = recentQuakes.length; // var marker;
+							var quake, marker, numberOfQuakes = recentQuakes.length;
 							for (var i = 0; i < numberOfQuakes; ++i) {
-								quake = recentQuakes[i]; // marker =
-								new maps.Marker({
+								quake = recentQuakes[i];
+								marker = new maps.Marker({
 									position: {
 										lat: quake.geometry.coordinates[1],
 										lng: quake.geometry.coordinates[0]
@@ -164,7 +195,8 @@
 									map: map,
 									icon: 'images/quakecon.ico',
 									title: quake.properties.title
-								}); // markers.push(marker);
+								});
+								quakesMarkers.push(marker);
 							}
 						}
 						console.log('Earthquake Data Request is at state ' + xhr.readyState + ' and the current HTTP status is ' + xhr.status);
