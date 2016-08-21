@@ -6,8 +6,7 @@ html, body {
 
 #controllers {
 	position: absolute;
-	top: 10%;
-	left: 5px;
+	top: 60px;
 	list-style: none;
 }
 
