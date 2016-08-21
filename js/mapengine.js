@@ -1,20 +1,39 @@
 'use strict';
+/* GLOBALFUNCTIONS is a collection of functions that are visible
+ * globally. This includes:
+ * 1) the initializeMap() function that is called by the script
+ * linking to the Google Maps API (once it is loaded) and
+ * 2) the gm_authFailure() function that is executed upon failure to
+ * authenticate one's browser key
+ */
 var GLOBALFUNCTIONS = (function MapEngine(global) {
 	var document = global.document;
 	var console = global.console;
 	var controllers = document.getElementById('controllers');
 
+	// a helper function that sets up the buttons used to interact with the map
 	function setUpButton(button, clickCallBack) {
 		button.style.display = 'initial';
 		button.addEventListener('click', clickCallBack);
 	}
 
+	/* This scoped block takes care of setting up one's browser key.
+	 * After requiring the browser key on one's first run, it
+	 * subsequently stores the key in localStorage so that it is
+	 * available even after one has shut down one's browser. This block
+	 * ultimately returns the removeStoredBrowserKey() function to be
+	 * used in the globally available gm_authFailure().
+	 */
 	var removeStoredBrowserKey = (function KeyManager() {
 		var storage = global.localStorage;
 		var clearButton = controllers.querySelector('#clearkey');
 		var mapsURLWithKey = storage.getItem('MapsURLWithGoogleMapsBrowserKey');
 
-		// call this block of code asynchronously to make sure that it executes AFTER MapEngine() function returns the initializeMap() function (which will be called by the script created in this block)
+		/* Call this block of code asynchronously to make sure that it
+		 * executes AFTER MapEngine() returns our globally available
+		 * collection of functions (which will be called by the script
+		 * created in this block).
+		 */
 		global.setTimeout(function() {
 			var key;
 			if (mapsURLWithKey) {
@@ -46,6 +65,12 @@ var GLOBALFUNCTIONS = (function MapEngine(global) {
 		return removeStoredBrowserKey;
 	})();
 
+	/* This scoped block takes care of setting up our map. It
+	 * ultimately returns two functions that need global availability:
+	 * 1) the initializeMap() function which, well, does exactly what * it's name suggests and
+	 * 2) the removeLocatorAndRefresherButtons() which, again, does
+	 * exactly what it's name suggests
+	 */
 	var publicMapMethods = (function MapManager() {
 		var selfLocatorButton = controllers.querySelector('#getownlocation');
 		var quakesRefresherButton = controllers.querySelector('#refreshquakes');
