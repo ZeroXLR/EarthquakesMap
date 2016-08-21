@@ -9,7 +9,7 @@ var GLOBALFUNCTIONS = (function MapEngine(global) {
 		button.addEventListener('click', clickCallBack);
 	}
 
-	var gm_authFailure = (function KeyManager() {
+	var removeStoredBrowserKey = (function KeyManager() {
 		var storage = global.localStorage;
 		var clearButton = controllers.querySelector('#clearkey');
 		var mapsURLWithKey = storage.getItem('MapsURLWithGoogleMapsBrowserKey');
@@ -43,16 +43,10 @@ var GLOBALFUNCTIONS = (function MapEngine(global) {
 			clearButton.style.display = 'none';
 		}
 
-		function gm_authFailure() {
-			removeStoredBrowserKey();
-			// storage.removeItem('MainPreferredLocation');
-			global.alert('DEATH BY AUTHENTICATION FAILURE\n\nLook at the browser console for details\n\nTRY REFRESHING AND ENTER A VALID KEY');
-		};
-
-		return gm_authFailure;
+		return removeStoredBrowserKey;
 	})();
 
-	var initializeMap = (function MapManager() {
+	var publicMapMethods = (function MapManager() {
 		var selfLocatorButton = controllers.querySelector('#getownlocation');
 		var quakesRefresherButton = controllers.querySelector('#refreshquakes');
 		var storage = global.sessionStorage;
@@ -146,7 +140,7 @@ var GLOBALFUNCTIONS = (function MapEngine(global) {
 							},
 							map: map,
 							icon: 'images/quakecon.ico',
-							title: quake.properties.title
+							title: quake.properties.title + '\n\n' + new Date(quake.properties.time)
 						});
 						quakesMarkers.push(marker);
 					}
@@ -157,11 +151,26 @@ var GLOBALFUNCTIONS = (function MapEngine(global) {
 			xhr.send();
 		}
 
-		return initializeMap;
+		function removeLocatorAndRefresherButtons() {
+			selfLocatorButton.style.display = 'none';
+			quakesRefresherButton.style.display = 'none';
+			// storage.removeItem('MainPreferredLocation');
+		};
+
+		return {
+			initializeMap: initializeMap,
+			removeLocatorAndRefresherButtons: removeLocatorAndRefresherButtons
+		};
 	})();
 
+	function gm_authFailure() {
+		removeStoredBrowserKey();
+		publicMapMethods.removeLocatorAndRefresherButtons();
+		global.alert('DEATH BY AUTHENTICATION FAILURE\n\nLook at the browser console for details\n\nTRY REFRESHING AND ENTER A VALID KEY');
+	}
+
 	return {
-		initializeMap: initializeMap,
+		initializeMap: publicMapMethods.initializeMap,
 		gm_authFailure: gm_authFailure
 	};
 })(this);
