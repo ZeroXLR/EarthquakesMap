@@ -19,10 +19,10 @@ var GLOBALFUNCTIONS = (function MapEngine(global) {
 
 	/* This scoped block takes care of setting up one's browser key.
 	 * After requiring the browser key on one's first run, it
-	 * subsequently stores the key in localStorage so that it is
+	 * subsequently stores the key in localStorage, so that it is
 	 * available even after one has shut down one's browser. This block
 	 * ultimately returns the removeStoredBrowserKey() function to be
-	 * used in the globally available gm_authFailure().
+	 * used in the globally available gm_authFailure() later on.
 	 */
 	var removeStoredBrowserKey = (function KeyManager() {
 		var storage = global.localStorage;
@@ -67,7 +67,8 @@ var GLOBALFUNCTIONS = (function MapEngine(global) {
 
 	/* This scoped block takes care of setting up our map. It
 	 * ultimately returns two functions that need global availability:
-	 * 1) the initializeMap() function which, well, does exactly what * it's name suggests and
+	 * 1) the initializeMap() function which, well, does exactly what
+	 * it's name suggests and
 	 * 2) the removeLocatorAndRefresherButtons() which, again, does
 	 * exactly what it's name suggests
 	 */
