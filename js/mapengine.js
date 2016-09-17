@@ -141,7 +141,7 @@ var GLOBALFUNCTIONS = (function MapEngine(global) {
 		var quakesMarkers = [];
 
 		function deleteQuakesMarkers() {
-			for (i = 0; i < quakesMarkers.length; ++i) {
+			for (var i = 0; i < quakesMarkers.length; ++i) {
 				quakesMarkers[i].setMap(null);
 			}
 			quakesMarkers = [];
@@ -149,8 +149,12 @@ var GLOBALFUNCTIONS = (function MapEngine(global) {
 
 		function fetchQuakesData() {
 			var xhr = new XMLHttpRequest();
-			xhr.onreadystatechange = function() {
-				if (xhr.readyState === 4 && xhr.status === 200) {
+			var progresslog = function() {
+				console.log('Earthquake Data Request is at state ' + xhr.readyState + ' and the current HTTP status is ' + xhr.status);
+			}
+			xhr.onloadstart = xhr.onprogress = progresslog;
+			xhr.onload = function() {
+				if (xhr.status === 200) {
 					if (quakesMarkers.length) {
 						deleteQuakesMarkers();
 					}
@@ -170,7 +174,6 @@ var GLOBALFUNCTIONS = (function MapEngine(global) {
 						quakesMarkers.push(marker);
 					}
 				}
-				console.log('Earthquake Data Request is at state ' + xhr.readyState + ' and the current HTTP status is ' + xhr.status);
 			};
 			xhr.open('GET', quakesURL, true);
 			xhr.send();
