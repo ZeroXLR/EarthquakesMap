@@ -141,8 +141,7 @@ var GLOBALFUNCTIONS = (function MapEngine(global) {
 		var quakesMarkers = [];
 
 		function deleteQuakesMarkers() {
-			var i, numberOfMarkers = quakesMarkers.length;
-			for (i = 0; i < numberOfMarkers; ++i) {
+			for (i = 0; i < quakesMarkers.length; ++i) {
 				quakesMarkers[i].setMap(null);
 			}
 			quakesMarkers = [];
@@ -156,8 +155,8 @@ var GLOBALFUNCTIONS = (function MapEngine(global) {
 						deleteQuakesMarkers();
 					}
 					var recentQuakes = JSON.parse(xhr.responseText).features;
-					var quake, marker, numberOfQuakes = recentQuakes.length;
-					for (var i = 0; i < numberOfQuakes; ++i) {
+					var quake, marker;
+					for (var i = 0; i < recentQuakes.length; ++i) {
 						quake = recentQuakes[i];
 						marker = new maps.Marker({
 							position: {
